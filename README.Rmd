@@ -1,0 +1,19 @@
+---
+title: "README"
+author: "Jerry"
+date: "February 18, 2020"
+output: html_document
+---
+
+# Homework 01
+
+This is homework assignment 02. [Link to hw02](hw2.html)
+
+---
+Grade:
+
+1. Tidy Submission: 
+1. Writing: 
+
+
+**Total: **
