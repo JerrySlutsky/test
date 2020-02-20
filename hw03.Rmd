@@ -1,0 +1,144 @@
+---
+title: "Homework 3"
+author: "Jerry Slutsky"
+date: "2/16/2020"
+output: 
+  html_document:
+    keep_md: true
+    code folding: hide
+    theme: cerulean
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, error = FALSE)
+library(psych)
+library(tidyverse)
+library(cowplot)
+library(ggplot2)
+library(ggthemes)
+library(ggcorrplot)
+```
+
+
+# Overview
+
+*This code is used for wrangling and visualizing the psych::bfi data set*
+  
+  
+**First I will create an 'id' column for each individual in the dataset:**
+```{r}
+data<- bfi
+data<- rownames_to_column(data, var = "id")
+names(data)
+```
+
+  
+## Task Option 8:
+
+### Create composite scores for the Big Five scores
+
+```{r}
+new.data<- data %>% 
+  as_tibble() %>% 
+  mutate(A_sum = rowSums(select(., A1:A5),na.rm = TRUE)) %>% 
+                mutate(N_sum = rowSums(select(., N1:N5),na.rm = TRUE)) %>% 
+                mutate(O_sum = rowSums(select(., O1:O5),na.rm = TRUE)) %>% 
+                mutate(C_sum = rowSums(select(., C1:C5),na.rm = TRUE)) %>% 
+                mutate(E_sum = rowSums(select(., E1:E5),na.rm = TRUE))
+```
+
+
+**Describe relationships among composite (sum scores) of the Big 5 Personality traits**
+
+  * I used the 'psych' package to create a correlation heatmap. 
+
+```{r}
+corcomp <- corFiml(new.data[c(30:34)])
+cor.plot(corcomp, upper = FALSE, numbers = TRUE, show.legend = TRUE)
+```
+
+The results suggest that the Big 5 composite have small relationships overall. The largest correlation is between openness and concientiousness (r = .28) and the smallest correlation is between neuroticism and extraversion (r = .05)
+
+
+**Graph of Big 5 Composite Scores**
+
+  * Created a barplot of all the Big 5 means
+```{r}
+fun_mean <- function(x){
+  return(data.frame(y=round(mean(x),2),label=round(mean(x,na.rm=T),2)))}
+new.data %>%
+  gather(A_sum, N_sum, O_sum, C_sum, E_sum, key = "Trait", value = "Composite") %>%
+  ggplot(aes(x=Trait, y=Composite, fill=Trait)) +
+  geom_bar(stat="summary", width = 0.5, fun.y = "mean")+
+  stat_summary(fun.y = mean, geom="point",colour="black", size=1) +
+  stat_summary(fun.data = fun_mean, geom="text", vjust=-0.7) +
+  labs(x="Big 5 Traits",y="Composite scores")
+```
+
+Agreeableness has the highest composite mean and neuroticism has the composite lowest mean
+
+
+## Task Option 9:
+
+### Does personality appear to change for different ages?
+
+
+**Used facet_wrap to graph all 5 composites in one figure**
+
+```{r, fig.align='center'}
+new.data %>%
+  gather(A_sum, N_sum, O_sum, C_sum, E_sum, key = "Trait", value = "Composite") %>%
+  ggplot(aes(x = age, y = Composite, color = Trait)) +
+    geom_smooth(method="lm", col="black", fun.y = "mean") +
+    geom_point(alpha= .5) +
+    facet_wrap(~ Trait, scales = "free") +
+    theme_bw() + theme(legend.position="none") +
+   labs(x="Age", y="Composite Score")
+```
+
+Looks like neuroticism and agreeableness are the only personality traits that change over time according to these data
+
+
+
+## Task Option 10
+
+### Explore how gender is related to the different personality variables.
+
+
+**Making male = 1 and female = 2
+
+```{r}
+new.data$gender<- factor(new.data$gender, levels=c(1,2), labels=c("Male","Female"))
+```
+
+
+**Using the describeBy function to get descriptives for each trait**
+```{r}
+A<-describeBy(new.data$A_sum, group = new.data$gender)
+C<-describeBy(new.data$C_sum, group = new.data$gender)
+N<-describeBy(new.data$N_sum, group = new.data$gender)
+O<-describeBy(new.data$O_sum, group = new.data$gender)
+E<-describeBy(new.data$E_sum, group = new.data$gender)
+```
+
+**Pull means out of the describeBy function from above:**
+```{r, error=FALSE, warning=FALSE}
+males<- c(N$`Male`$mean, A$`Male`$mean, C$`Male`$mean, O$`Male`$mean, E$`Male`$mean) 
+females<- c(N$`Female`$mean, A$`Female`$mean, C$`Female`$mean, O$`Female`$mean, E$`Female`$mean) 
+```
+
+**Combine Means and Adding Row Names**
+```{r}
+means<-data.frame(males,females, check.names = FALSE, 
+                  check.rows = FALSE,
+                  row.names=c("N","A","C","O","E"))
+```
+
+**Printing Means of Males and Females in Table Format:**
+```{r, fig.align='center'}
+knitr::kable(means)
+```
+
+As you can see in the table above containing means between gender for each of the Big 5 traits from the BFI data set, Males scored higher on Conscientiousness, Openness, and Extroversion. Females scored higher on Neuroticism and Agreeableness.
