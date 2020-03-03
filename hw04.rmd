@@ -1,0 +1,185 @@
+---
+title: "hw04"
+author: "Jerry Slutsky"
+date: "3/2/2020"
+output: 
+  html_document:
+    keep_md: true
+    theme: cerulean
+    code_folding: hide
+    toc: true
+---
+
+#load libraries
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, error = FALSE, results = 'tidy', fig.align = 'center', highlight = FALSE)
+library(gapminder)
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(ggthemes)
+```
+
+
+# HW 4 Objective
+You have learned alot about data wrangling! You know how to use the tidyverse to:
+
+  * Filter rows and select variables in a principled or name-based manner
+  * Modify variables and create new variables
+  * Group rows of a data frame and do summarizing or mutating computations within group
+  * Reshape a data frame
+  * Get new information into a data frame via a joining
+  * The goal of this homework is to solidify your data wrangling skills by working
+  some realistic problems in the grey area between data aggregation and data
+  reshaping.
+
+If you internalize that there are multiple solutions to most problems, you will spend less time banging your head against the wall in data analysis. If something’s really hard, sneak up on it from a different angle.
+
+```{r allow errors, echo = FALSE}
+knitr::opts_chunk$set(error = TRUE)
+```
+
+# Excercise 1:
+
+## Univariate Option 1
+
+##### Make a tibble with one row per year, and columns for life expectancy for two or more countries. Take advantage of this new data shape to scatterplot life expectancy for one country against that of another. Re-lengthen the data.
+
+**I made a wide dataset for United States and Djibouti**
+
+```{r}
+wide <- gapminder %>% 
+  select(year, country, lifeExp) %>% 
+  filter(country %in% c("United States", "Djibouti")) %>%
+  pivot_wider(id_cols = year,
+              names_from = country,
+              values_from = lifeExp)
+wide
+```
+
+
+**I made a scatterplot comparing the life expectancy of US and Djibouti over time**
+```{r}
+wide %>%
+ggplot() +
+  geom_point(aes(x = year, y = `United States`), col = "chartreuse") +
+  geom_text(x=1980, y=70, label="United States") +
+  geom_point(aes(x = year, y = Djibouti), col = "chocolate4") +
+  geom_text(x=1980, y=45, label="Djibouti") +
+  theme_bw() +
+  ylim(30, 85)+
+  ylab("Life Expectancy")+
+  xlab("Year")
+```
+
+
+**Putting data back into long format**
+```{r}
+wide %>% 
+  pivot_longer(cols = c(`United States`, Djibouti),
+               names_to  = "Country",
+               values_to = "Life_Expectancy") 
+```
+
+
+
+<br><br><br>
+
+
+***
+
+
+<br><br><br>
+
+
+
+# Exercise 2:
+
+## Multivariate Option 1
+
+##### Make a tibble with one row per year, and columns for life expectancy and GDP per capita for two or more countries. Print this table in a pretty format, using either knitr::kable() or DT::datatable() depending on the number of rows of data. Re-lengthen the data.
+
+<br>
+
+**I made a wide dataset for Cuba and Jamaica**
+```{r}
+wide2 <- gapminder %>%
+  select(year, country, lifeExp, gdpPercap) %>% 
+  filter(country %in% c("Cuba", "Jamaica")) %>%
+  pivot_wider(id_cols = year,
+              names_from = c(country),
+              names_sep = "_",
+              values_from = c(lifeExp, gdpPercap)) 
+
+wide2
+```
+
+```{r}
+knitr::kable(wide2)
+```
+
+**Putting data back into long format**
+```{r}
+(wide2 %>% 
+pivot_longer(cols= c(starts_with("lifeExp"), starts_with("gdpPercap")),
+               names_to  = c(".value","Country"),
+              names_sep="_")) 
+```
+
+
+<br><br><br>
+
+
+***
+
+
+<br><br><br>
+
+
+# Exercise 3: Table Joins 
+
+##### Read in the made-up wedding guestlist and email addresses using the following lines (go ahead and copy-paste these). Then, complete the following tasks using the tidyverse (tidyr, dplyr, …). There shouldn’t be any need to do any pivoting – feel free to leave guest in its current format.
+```{r}
+guest <- read_csv("https://raw.githubusercontent.com/USF-Psych-DataSci/Classroom/master/data/wedding/attend.csv")
+email <- read_csv("https://raw.githubusercontent.com/USF-Psych-DataSci/Classroom/master/data/wedding/emails.csv")
+```
+
+
+## 3.1:
+
+##### For each guest in the guestlist (guest tibble), add a column for email address, which can be found in the email tibble.
+
+```{r}
+email_name <- email %>% 
+  separate_rows(guest, sep = ", ") %>%
+  rename(name = guest)
+email_name
+email_name %>% 
+  separate(name, into = c("First", "Last"))
+left_join(guest, email_name, by = "name") %>% 
+  select(party, name, email, everything())
+```
+
+
+## 3.2
+
+##### Who do we have emails for, yet are not on the guestlist?
+
+```{r}
+anti_join(email_name, guest, by = "name")
+```
+Turner Jones, Albert Marshall, and Vivian Marshall
+
+
+## 3.3 
+
+##### Make a guestlist that includes everyone we have emails for (in addition to those on the original guestlist).
+
+
+```{r}
+guest %>% 
+  full_join(email_name, by = "name") %>% 
+  select(name, email)
+```
+
