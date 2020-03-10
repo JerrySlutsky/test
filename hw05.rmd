@@ -1,0 +1,136 @@
+---
+title: "Untitled"
+author: "Jerry"
+date: "March 8, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#load relevant packages
+
+```{r}
+library(tidyverse)
+library(here)
+library(qualtRics)
+library(psych)
+library(dplyr)
+library(scales)
+library(tsibble)
+library(ggplot2)
+library(svglite)
+library(ggthemes)
+```
+
+#Step 1 - set up folder structure
+
+```{r}
+dir.create(here::here("final_project", "data", "data-raw"), recursive = TRUE)
+dir.create(here::here("final_project", "data", "data-clean"), recursive = TRUE)
+dir.create(here::here("final_project", "markdown"), recursive = TRUE)
+dir.create(here::here("final_project", "scripts"), recursive = TRUE)
+dir.create(here::here("final_project", "output"), recursive = TRUE)
+dir.create(here::here("final_project", "output", "figures"), recursive = TRUE)
+dir.create(here::here("final_project", "docs"), recursive = TRUE)
+```
+
+#Step 2 - download data
+
+##enter qualtrics api
+
+```{r}
+qualtrics_api_credentials(api_key = "5ZtnXVwhe9ppua0ib5na2YeEDg1JuydR3T4Nxrrb", 
+                           base_url = "https://usf.az1.qualtrics.com",
+                           install = TRUE,
+                           overwrite = TRUE)
+ 
+(readRenviron("~/.Renviron"))
+```
+
+#pulling thesis data from qualtrics
+
+```{r}
+surveys <- all_surveys()
+```
+
+
+```{r}
+raw_thesis_data_030820 <- fetch_survey(surveyID = surveys$id[12], 
+                         verbose = TRUE)
+```
+
+#saving raw data to folder
+
+```{r}
+write_csv(raw_thesis_data_030820, here::here("final_project", "data", "data-raw", "raw_thesis_data_030820.csv"))
+```
+
+#describing the data
+
+
+Selecting Variables I Need
+
+```{r}
+thesis_subset <- raw_thesis_data_030820 %>% 
+  select(AGE, ETHNIC, GENDER, NAS_1, NAS_2, NAS_3, NAS_4, NAS_5, NAS_6, NAS_7,
+         NAS_8, NAS_9, NAS_10, SSEPS_1, SSEPS_2, SSEPS_3, SSEPS_4, SSEPS_5)
+         
+```
+
+Cleaning Data
+
+```{r}
+thesis_subset$NAS_1<- as.factor(thesis_subset$NAS_1)
+thesis_subset$NAS_2<- as.factor(thesis_subset$NAS_2)
+thesis_subset$NAS_3<- as.factor(thesis_subset$NAS_3)
+thesis_subset$NAS_4<- as.factor(thesis_subset$NAS_4)
+thesis_subset$NAS_5<- as.factor(thesis_subset$NAS_5)
+thesis_subset$NAS_6<- as.factor(thesis_subset$NAS_6)
+thesis_subset$NAS_7<- as.factor(thesis_subset$NAS_7)
+thesis_subset$NAS_8<- as.factor(thesis_subset$NAS_8)
+thesis_subset$NAS_9<- as.factor(thesis_subset$NAS_9)
+thesis_subset$NAS_10<- as.factor(thesis_subset$NAS_10)
+thesis_subset$GENDER<- as.factor(thesis_subset$GENDER)
+thesis_subset$ETHNIC <- as.factor(thesis_subset$ETHNIC)
+```
+
+```{r}
+thesis_cleaned <- thesis_subset
+```
+```{r}
+thesis_cleaned$NAS_1<-recode(thesis_subset$NAS_1, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_2<-recode(thesis_subset$NAS_2, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_3<-recode(thesis_subset$NAS_3, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_4<-recode(thesis_subset$NAS_4, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_5<-recode(thesis_subset$NAS_5, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_6<-recode(thesis_subset$NAS_6, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_7<-recode(thesis_subset$NAS_7, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_8<-recode(thesis_subset$NAS_8, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_9<-recode(thesis_subset$NAS_9, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$NAS_10<-recode(thesis_subset$NAS_10, 'Very slightly or not at all'=1, 'A little'=2, 'Moderately'=3, 'Quite a bit'=4, 'A lot' = 5)
+thesis_cleaned$gender<-recode(thesis_subset$GENDER, 'Male'=1, 'Female'=2, 'Not listed'=3)
+```
+
+# Step 3 - Save cleaned data and plot data
+
+Saving Dataframe
+
+```{r}
+write_csv(raw_thesis_data_030820, here::here("final_project", "data", "data-clean", "clean_thesis_data_030920.csv"))
+```
+
+```{r}
+sample_plot <-
+  thesis_cleaned %>% 
+  ggplot(aes(GENDER, NAS_1)) +
+  geom_col()
+sample_plot
+
+
+#save plot
+ggsave(here::here("final_project", "output", "figures", "sample.jpg"), sample_plot)
+ggsave(here::here("final_project", "output", "figures", "sample.svg"), sample_plot)
+ggsave(here::here("final_project", "output", "figures", "sample.pdf"), sample_plot)
+```
